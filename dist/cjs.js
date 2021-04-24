@@ -83,7 +83,8 @@ function _await(value, then, direct) {
   }if (result && result.then) {
     return result.then(finalizer, finalizer);
   }return finalizer();
-}var VueSimpleSuggest = {
+}
+var VueSimpleSuggest = {
   render: function render() {
     var _vm = this;var _h = _vm.$createElement;var _c = _vm._self._c || _h;return _c('div', { staticClass: "vue-simple-suggest", class: [_vm.styles.vueSimpleSuggest, { designed: !_vm.destyled, focus: _vm.isInFocus }], on: { "keydown": function keydown($event) {
           if (!$event.type.indexOf('key') && _vm._k($event.keyCode, "tab", 9, $event.key, "Tab")) {
@@ -235,7 +236,8 @@ function _await(value, then, direct) {
       isFalseFocus: false,
       isTabbed: false,
       controlScheme: {},
-      listId: this._uid + '-suggestions'
+      listId: this._uid + '-suggestions',
+      hasSplitter: false
     };
   },
 
@@ -469,14 +471,16 @@ function _await(value, then, direct) {
       }
     },
     moveSelection: function moveSelection(e) {
+
+      var offset = this.hasSplitter ? 1 : 0;
       if (!this.listShown || !this.suggestions.length) return;
       if (hasKeyCode([this.controlScheme.selectionUp, this.controlScheme.selectionDown], e)) {
         e.preventDefault();
 
         var isMovingDown = hasKeyCode(this.controlScheme.selectionDown, e);
         var direction = isMovingDown * 2 - 1;
-        var listEdge = isMovingDown ? 0 : this.suggestions.length - 1;
-        var hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > 0;
+        var listEdge = isMovingDown ? offset : this.suggestions.length - 1;
+        var hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > offset;
 
         var item = null;
 
@@ -484,6 +488,9 @@ function _await(value, then, direct) {
           item = this.selected || this.suggestions[listEdge];
         } else if (hoversBetweenEdges) {
           item = this.suggestions[this.hoveredIndex + direction];
+          if (item.splitter) {
+            item = this.suggestions[this.hoveredIndex + direction * 2];
+          }
         } else /* if hovers on edge */{
             item = this.suggestions[listEdge];
           }
@@ -683,8 +690,17 @@ function _await(value, then, direct) {
                 });
               }
 
+<<<<<<< HEAD
               if (_this12.listIsRequest) {
                 _this12.$emit('request-done', result);
+=======
+              _this10.hasSplitter = result.find(function (e) {
+                return e.splitter;
+              }) ? true : false;
+
+              if (_this10.listIsRequest) {
+                _this10.$emit('request-done', result);
+>>>>>>> Prevent selection of "splitter" items
               }
             });
           }, function (e) {

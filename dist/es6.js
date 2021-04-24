@@ -31,12 +31,23 @@ function hasKeyCodeByCode(arr, keyCode) {
   }
 }
 
+<<<<<<< HEAD
 function _await(value, then, direct) {
   if (direct) {
     return then ? then(value) : value;
   }if (!value || !value.then) {
     value = Promise.resolve(value);
   }return then ? value.then(then) : value;
+=======
+function _empty() {}function _awaitIgnored(value, direct) {
+  if (!direct) {
+    return value && value.then ? value.then(_empty) : Promise.resolve();
+  }
+}function _invoke(body, then) {
+  var result = body();if (result && result.then) {
+    return result.then(then);
+  }return then(result);
+>>>>>>> Prevent selection of "splitter" items
 }function _async(f) {
   return function () {
     for (var args = [], i = 0; i < arguments.length; i++) {
@@ -77,7 +88,8 @@ function _await(value, then, direct) {
   }if (result && result.then) {
     return result.then(finalizer, finalizer);
   }return finalizer();
-}var VueSimpleSuggest = {
+}
+var VueSimpleSuggest = {
   render: function () {
     var _vm = this;var _h = _vm.$createElement;var _c = _vm._self._c || _h;return _c('div', { staticClass: "vue-simple-suggest", class: [_vm.styles.vueSimpleSuggest, { designed: !_vm.destyled, focus: _vm.isInFocus }], on: { "keydown": function ($event) {
           if (!$event.type.indexOf('key') && _vm._k($event.keyCode, "tab", 9, $event.key, "Tab")) {
@@ -217,7 +229,8 @@ function _await(value, then, direct) {
       isFalseFocus: false,
       isTabbed: false,
       controlScheme: {},
-      listId: `${this._uid}-suggestions`
+      listId: `${this._uid}-suggestions`,
+      hasSplitter: false
     };
   },
   computed: {
@@ -435,14 +448,16 @@ function _await(value, then, direct) {
       }
     },
     moveSelection(e) {
+
+      const offset = this.hasSplitter ? 1 : 0;
       if (!this.listShown || !this.suggestions.length) return;
       if (hasKeyCode([this.controlScheme.selectionUp, this.controlScheme.selectionDown], e)) {
         e.preventDefault();
 
         const isMovingDown = hasKeyCode(this.controlScheme.selectionDown, e);
         const direction = isMovingDown * 2 - 1;
-        const listEdge = isMovingDown ? 0 : this.suggestions.length - 1;
-        const hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > 0;
+        const listEdge = isMovingDown ? offset : this.suggestions.length - 1;
+        const hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > offset;
 
         let item = null;
 
@@ -450,6 +465,9 @@ function _await(value, then, direct) {
           item = this.selected || this.suggestions[listEdge];
         } else if (hoversBetweenEdges) {
           item = this.suggestions[this.hoveredIndex + direction];
+          if (item.splitter) {
+            item = this.suggestions[this.hoveredIndex + direction * 2];
+          }
         } else /* if hovers on edge */{
             item = this.suggestions[listEdge];
           }
@@ -570,9 +588,14 @@ function _await(value, then, direct) {
       } else {
         this.research();
       }
+<<<<<<< HEAD
     },
     research: _async(function () {
       const _this3 = this;
+=======
+    }, research: _async(function () {
+      const _this2 = this;
+>>>>>>> Prevent selection of "splitter" items
 
       return _finally(function () {
         return _catch(function () {
@@ -645,8 +668,15 @@ function _await(value, then, direct) {
               result = result.filter(el => _this4.filter(el, value));
             }
 
+<<<<<<< HEAD
             if (_this4.listIsRequest) {
               _this4.$emit('request-done', result);
+=======
+            _this3.hasSplitter = result.find(e => e.splitter) ? true : false;
+
+            if (_this3.listIsRequest) {
+              _this3.$emit('request-done', result);
+>>>>>>> Prevent selection of "splitter" items
             }
           });
         }, function (e) {
