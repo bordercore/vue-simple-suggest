@@ -62,11 +62,11 @@ function _await(value, then, direct) {
     return result.then(then);
   }return then(result);
 }function _invokeIgnored(body) {
-  var result = body();
-  if (result && result.then) {
+  var result = body();if (result && result.then) {
     return result.then(_empty);
   }
 }function _catch(body, recover) {
+
   try {
     var result = body();
   } catch (e) {
@@ -74,8 +74,8 @@ function _await(value, then, direct) {
   }if (result && result.then) {
     return result.then(void 0, recover);
   }return result;
-}function _finally(body, finalizer) {
-
+}
+function _finally(body, finalizer) {
   try {
     var result = body();
   } catch (e) {
@@ -235,7 +235,8 @@ function _await(value, then, direct) {
       isFalseFocus: false,
       isTabbed: false,
       controlScheme: {},
-      listId: this._uid + '-suggestions'
+      listId: this._uid + '-suggestions',
+      hasSplitter: false
     };
   },
 
@@ -469,14 +470,16 @@ function _await(value, then, direct) {
       }
     },
     moveSelection: function moveSelection(e) {
+
+      var offset = this.hasSplitter ? 1 : 0;
       if (!this.listShown || !this.suggestions.length) return;
       if (hasKeyCode([this.controlScheme.selectionUp, this.controlScheme.selectionDown], e)) {
         e.preventDefault();
 
         var isMovingDown = hasKeyCode(this.controlScheme.selectionDown, e);
         var direction = isMovingDown * 2 - 1;
-        var listEdge = isMovingDown ? 0 : this.suggestions.length - 1;
-        var hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > 0;
+        var listEdge = isMovingDown ? offset : this.suggestions.length - 1;
+        var hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > offset;
 
         var item = null;
 
@@ -484,6 +487,9 @@ function _await(value, then, direct) {
           item = this.selected || this.suggestions[listEdge];
         } else if (hoversBetweenEdges) {
           item = this.suggestions[this.hoveredIndex + direction];
+          if (item.splitter) {
+            item = this.suggestions[this.hoveredIndex + direction * 2];
+          }
         } else /* if hovers on edge */{
             item = this.suggestions[listEdge];
           }
@@ -559,9 +565,7 @@ function _await(value, then, direct) {
       } else {
         this.inputElement.blur();
         console.error('This should never happen!\n          If you encountered this error, please make sure that your input component emits \'focus\' events properly.\n          For more info see https://github.com/KazanExpress/vue-simple-suggest#custom-input.\n\n          If your \'vue-simple-suggest\' setup does not include a custom input component - please,\n          report to https://github.com/KazanExpress/vue-simple-suggest/issues/new');
-      }
-
-      this.isTabbed = false;
+      }this.isTabbed = false;
     },
     onFocus: function onFocus(e) {
       this.isInFocus = true;
@@ -595,7 +599,9 @@ function _await(value, then, direct) {
       if (this.text.length < this.minLength) {
         this.hideList();
         return;
-      }if (this.debounce) {
+      }
+
+      if (this.debounce) {
         clearTimeout(this.timeoutInstance);
         this.timeoutInstance = setTimeout(this.research, this.debounce);
       } else {
@@ -682,6 +688,10 @@ function _await(value, then, direct) {
                   return _this12.filter(el, value);
                 });
               }
+
+              _this12.hasSplitter = result.find(function (e) {
+                return e.splitter;
+              }) ? true : false;
 
               if (_this12.listIsRequest) {
                 _this12.$emit('request-done', result);

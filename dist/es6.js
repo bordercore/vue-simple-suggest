@@ -56,11 +56,11 @@ function _await(value, then, direct) {
     return result.then(then);
   }return then(result);
 }function _invokeIgnored(body) {
-  var result = body();
-  if (result && result.then) {
+  var result = body();if (result && result.then) {
     return result.then(_empty);
   }
 }function _catch(body, recover) {
+
   try {
     var result = body();
   } catch (e) {
@@ -68,8 +68,8 @@ function _await(value, then, direct) {
   }if (result && result.then) {
     return result.then(void 0, recover);
   }return result;
-}function _finally(body, finalizer) {
-
+}
+function _finally(body, finalizer) {
   try {
     var result = body();
   } catch (e) {
@@ -217,7 +217,8 @@ function _await(value, then, direct) {
       isFalseFocus: false,
       isTabbed: false,
       controlScheme: {},
-      listId: `${this._uid}-suggestions`
+      listId: `${this._uid}-suggestions`,
+      hasSplitter: false
     };
   },
   computed: {
@@ -435,14 +436,16 @@ function _await(value, then, direct) {
       }
     },
     moveSelection(e) {
+
+      const offset = this.hasSplitter ? 1 : 0;
       if (!this.listShown || !this.suggestions.length) return;
       if (hasKeyCode([this.controlScheme.selectionUp, this.controlScheme.selectionDown], e)) {
         e.preventDefault();
 
         const isMovingDown = hasKeyCode(this.controlScheme.selectionDown, e);
         const direction = isMovingDown * 2 - 1;
-        const listEdge = isMovingDown ? 0 : this.suggestions.length - 1;
-        const hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > 0;
+        const listEdge = isMovingDown ? offset : this.suggestions.length - 1;
+        const hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > offset;
 
         let item = null;
 
@@ -450,6 +453,9 @@ function _await(value, then, direct) {
           item = this.selected || this.suggestions[listEdge];
         } else if (hoversBetweenEdges) {
           item = this.suggestions[this.hoveredIndex + direction];
+          if (item.splitter) {
+            item = this.suggestions[this.hoveredIndex + direction * 2];
+          }
         } else /* if hovers on edge */{
             item = this.suggestions[listEdge];
           }
@@ -528,11 +534,8 @@ function _await(value, then, direct) {
 
           If your 'vue-simple-suggest' setup does not include a custom input component - please,
           report to https://github.com/KazanExpress/vue-simple-suggest/issues/new`);
-      }
-
-      this.isTabbed = false;
-    },
-    onFocus(e) {
+      }this.isTabbed = false;
+    }, onFocus(e) {
       this.isInFocus = true;
 
       // Only emit, if it was a native input focus
@@ -564,7 +567,9 @@ function _await(value, then, direct) {
       if (this.text.length < this.minLength) {
         this.hideList();
         return;
-      }if (this.debounce) {
+      }
+
+      if (this.debounce) {
         clearTimeout(this.timeoutInstance);
         this.timeoutInstance = setTimeout(this.research, this.debounce);
       } else {
@@ -644,6 +649,8 @@ function _await(value, then, direct) {
             if (_this4.filterByQuery) {
               result = result.filter(el => _this4.filter(el, value));
             }
+
+            _this4.hasSplitter = result.find(e => e.splitter) ? true : false;
 
             if (_this4.listIsRequest) {
               _this4.$emit('request-done', result);

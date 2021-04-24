@@ -187,7 +187,8 @@ export default {
       isFalseFocus: false,
       isTabbed: false,
       controlScheme: {},
-      listId: `${this._uid}-suggestions`
+      listId: `${this._uid}-suggestions`,
+      hasSplitter: false
     }
   },
   computed: {
@@ -399,14 +400,16 @@ export default {
       }
     },
     moveSelection (e) {
+
+      const offset = this.hasSplitter ? 1 : 0
       if (!this.listShown || !this.suggestions.length) return
       if (hasKeyCode([this.controlScheme.selectionUp, this.controlScheme.selectionDown], e)) {
         e.preventDefault()
 
         const isMovingDown = hasKeyCode(this.controlScheme.selectionDown, e)
         const direction = isMovingDown * 2 - 1
-        const listEdge = isMovingDown ? 0 : this.suggestions.length - 1
-        const hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > 0
+        const listEdge = isMovingDown ? offset : this.suggestions.length - 1
+        const hoversBetweenEdges = isMovingDown ? this.hoveredIndex < this.suggestions.length - 1 : this.hoveredIndex > offset
 
         let item = null
 
@@ -414,6 +417,9 @@ export default {
           item = this.selected || this.suggestions[listEdge]
         } else if (hoversBetweenEdges) {
           item = this.suggestions[this.hoveredIndex + direction]
+            if (item.splitter) {
+                item = this.suggestions[this.hoveredIndex + direction*2]
+            }
         } else /* if hovers on edge */ {
           item = this.suggestions[listEdge]
         }
@@ -603,6 +609,8 @@ export default {
         if (this.filterByQuery) {
           result = result.filter((el) => this.filter(el, value))
         }
+
+        this.hasSplitter = result.find(e => e.splitter) ? true : false
 
         if (this.listIsRequest) {
           this.$emit('request-done', result)
