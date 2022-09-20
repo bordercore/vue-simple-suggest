@@ -554,7 +554,9 @@ export default {
     },
     async research () {
       try {
+        console.log("a");
         if (this.canSend) {
+          console.log("b");
           this.canSend = false
           this.$set(this, 'suggestions', await this.getSuggestions(this.text))
         }
