@@ -61,10 +61,6 @@ function _await(value, then, direct) {
   var result = body();if (result && result.then) {
     return result.then(then);
   }return then(result);
-}function _invokeIgnored(body) {
-  var result = body();if (result && result.then) {
-    return result.then(_empty);
-  }
 }function _catch(body, recover) {
   try {
     var result = body();
@@ -72,11 +68,8 @@ function _await(value, then, direct) {
     return recover(e);
   }if (result && result.then) {
     return result.then(void 0, recover);
-  }
-  return result;
-}
-
-function _finally(body, finalizer) {
+  }return result;
+}function _finally(body, finalizer) {
   try {
     var result = body();
   } catch (e) {
@@ -227,7 +220,6 @@ function _finally(body, finalizer) {
       suggestions: [],
       listShown: false,
       inputElement: null,
-      canSend: true,
       timeoutInstance: null,
       text: this.value,
       isPlainSuggestion: false,
@@ -237,7 +229,8 @@ function _finally(body, finalizer) {
       isTabbed: false,
       controlScheme: {},
       listId: this._uid + '-suggestions',
-      hasSplitter: false
+      hasSplitter: false,
+      requestCounter: 0
     };
   },
 
@@ -571,7 +564,9 @@ function _finally(body, finalizer) {
       } else {
         this.inputElement.blur();
         console.error('This should never happen!\n          If you encountered this error, please make sure that your input component emits \'focus\' events properly.\n          For more info see https://github.com/KazanExpress/vue-simple-suggest#custom-input.\n\n          If your \'vue-simple-suggest\' setup does not include a custom input component - please,\n          report to https://github.com/KazanExpress/vue-simple-suggest/issues/new');
-      }this.isTabbed = false;
+      }
+
+      this.isTabbed = false;
     },
     onFocus: function onFocus(e) {
       this.isInFocus = true;
@@ -620,25 +615,16 @@ function _finally(body, finalizer) {
 
         return _finally(function () {
           return _catch(function () {
-            return _invokeIgnored(function () {
-              if (_this10.canSend) {
-                _this10.canSend = false;
-                // @TODO: fix when promises will be cancelable (never :D)
-                var textBeforeRequest = _this10.text;
-                return _await(_this10.getSuggestions(_this10.text), function (newList) {
-                  if (textBeforeRequest === _this10.text) {
-                    _this10.$set(_this10, 'suggestions', newList);
-                  }
-                });
-              }
+            _this10.requestCounter++;
+            var _$set = _this10.$set;
+            return _await(_this10.getSuggestions(_this10.text, _this10.requestCounter), function (_this9$getSuggestions) {
+              _$set.call(_this10, _this10, 'suggestions', _this9$getSuggestions);
             });
           }, function (e) {
             _this10.clearSuggestions();
             throw e;
           });
         }, function () {
-          _this10.canSend = true;
-
           if (_this10.suggestions.length === 0 && _this10.miscSlotsAreEmpty()) {
             _this10.hideList();
           } else if (_this10.isInFocus) {
@@ -651,8 +637,10 @@ function _finally(body, finalizer) {
         return Promise.reject(e);
       }
     },
-    getSuggestions: function getSuggestions(value) {
+    getSuggestions: function getSuggestions(value, requestCounter) {
       try {
+        var _exit2 = false;
+
         var _this12 = this;
 
         value = value || '';
@@ -676,11 +664,20 @@ function _finally(body, finalizer) {
               if (_this12.listIsRequest) {
                 return _await(_this12.list(value), function (_this11$list) {
                   result = _this11$list || [];
+
+                  if (_this12.requestCounter !== requestCounter) {
+                    // A result of some kind is returned in the finally() clause.
+                    // If we're cancelling, just return the current suggestion list
+                    result = _this12.suggestions;
+                    throw new Error("Async search error");
+                  }
                 });
               } else {
                 result = _this12.list;
               }
-            }, function () {
+            }, function (_result) {
+              if (_exit2) return _result;
+
 
               // IFF the result is not an array (just in case!) - make it an array
               if (!Array.isArray(result)) {

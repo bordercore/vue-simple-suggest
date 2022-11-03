@@ -178,7 +178,6 @@ export default {
       suggestions: [],
       listShown: false,
       inputElement: null,
-      canSend: true,
       timeoutInstance: null,
       text: this.value,
       isPlainSuggestion: false,
@@ -188,7 +187,8 @@ export default {
       isTabbed: false,
       controlScheme: {},
       listId: `${this._uid}-suggestions`,
-      hasSplitter: false
+      hasSplitter: false,
+      requestCounter: 0,
     }
   },
   computed: {
@@ -554,10 +554,8 @@ export default {
     },
     async research () {
       try {
-        if (this.canSend) {
-          this.canSend = false
-          this.$set(this, 'suggestions', await this.getSuggestions(this.text))
-        }
+        this.requestCounter++;
+        this.$set(this, 'suggestions', await this.getSuggestions(this.text, this.requestCounter))
       }
 
       catch (e) {
@@ -566,8 +564,6 @@ export default {
       }
 
       finally {
-        this.canSend = true
-
         if ((this.suggestions.length === 0) && this.miscSlotsAreEmpty()) {
           this.hideList()
         } else if (this.isInFocus) {
@@ -577,7 +573,7 @@ export default {
         return this.suggestions
       }
     },
-    async getSuggestions (value) {
+    async getSuggestions (value, requestCounter) {
       value = value || '';
 
       if (value.length < this.minLength) {
@@ -596,6 +592,12 @@ export default {
       try {
         if (this.listIsRequest) {
           result = (await this.list(value)) || []
+          if (this.requestCounter !== requestCounter) {
+            // A result of some kind is returned in the finally() clause.
+            // If we're cancelling, just return the current suggestion list
+            result = this.suggestions;
+            throw new Error("Async search error");
+          }
         } else {
           result = this.list
         }

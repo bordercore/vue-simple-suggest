@@ -55,10 +55,6 @@ function _await(value, then, direct) {
   var result = body();if (result && result.then) {
     return result.then(then);
   }return then(result);
-}function _invokeIgnored(body) {
-  var result = body();if (result && result.then) {
-    return result.then(_empty);
-  }
 }function _catch(body, recover) {
   try {
     var result = body();
@@ -66,11 +62,8 @@ function _await(value, then, direct) {
     return recover(e);
   }if (result && result.then) {
     return result.then(void 0, recover);
-  }
-  return result;
-}
-
-function _finally(body, finalizer) {
+  }return result;
+}function _finally(body, finalizer) {
   try {
     var result = body();
   } catch (e) {
@@ -209,7 +202,6 @@ function _finally(body, finalizer) {
       suggestions: [],
       listShown: false,
       inputElement: null,
-      canSend: true,
       timeoutInstance: null,
       text: this.value,
       isPlainSuggestion: false,
@@ -219,7 +211,8 @@ function _finally(body, finalizer) {
       isTabbed: false,
       controlScheme: {},
       listId: `${this._uid}-suggestions`,
-      hasSplitter: false
+      hasSplitter: false,
+      requestCounter: 0
     };
   },
   computed: {
@@ -540,7 +533,9 @@ function _finally(body, finalizer) {
 
           If your 'vue-simple-suggest' setup does not include a custom input component - please,
           report to https://github.com/KazanExpress/vue-simple-suggest/issues/new`);
-      }this.isTabbed = false;
+      }
+
+      this.isTabbed = false;
     },
     onFocus(e) {
       this.isInFocus = true;
@@ -588,25 +583,16 @@ function _finally(body, finalizer) {
 
       return _finally(function () {
         return _catch(function () {
-          return _invokeIgnored(function () {
-            if (_this3.canSend) {
-              _this3.canSend = false;
-              // @TODO: fix when promises will be cancelable (never :D)
-              let textBeforeRequest = _this3.text;
-              return _await(_this3.getSuggestions(_this3.text), function (newList) {
-                if (textBeforeRequest === _this3.text) {
-                  _this3.$set(_this3, 'suggestions', newList);
-                }
-              });
-            }
+          _this3.requestCounter++;
+          const _$set = _this3.$set;
+          return _await(_this3.getSuggestions(_this3.text, _this3.requestCounter), function (_this3$getSuggestions) {
+            _$set.call(_this3, _this3, 'suggestions', _this3$getSuggestions);
           });
         }, function (e) {
           _this3.clearSuggestions();
           throw e;
         });
       }, function () {
-        _this3.canSend = true;
-
         if (_this3.suggestions.length === 0 && _this3.miscSlotsAreEmpty()) {
           _this3.hideList();
         } else if (_this3.isInFocus) {
@@ -616,7 +602,9 @@ function _finally(body, finalizer) {
         return _this3.suggestions;
       });
     }),
-    getSuggestions: _async(function (value) {
+    getSuggestions: _async(function (value, requestCounter) {
+      let _exit = false;
+
       const _this4 = this;
 
       value = value || '';
@@ -640,11 +628,20 @@ function _finally(body, finalizer) {
             if (_this4.listIsRequest) {
               return _await(_this4.list(value), function (_this4$list) {
                 result = _this4$list || [];
+
+                if (_this4.requestCounter !== requestCounter) {
+                  // A result of some kind is returned in the finally() clause.
+                  // If we're cancelling, just return the current suggestion list
+                  result = _this4.suggestions;
+                  throw new Error("Async search error");
+                }
               });
             } else {
               result = _this4.list;
             }
-          }, function () {
+          }, function (_result) {
+            if (_exit) return _result;
+
 
             // IFF the result is not an array (just in case!) - make it an array
             if (!Array.isArray(result)) {

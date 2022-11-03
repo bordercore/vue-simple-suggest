@@ -162,7 +162,6 @@ var VueSimpleSuggest = {
       suggestions: [],
       listShown: false,
       inputElement: null,
-      canSend: true,
       timeoutInstance: null,
       text: this.value,
       isPlainSuggestion: false,
@@ -172,7 +171,8 @@ var VueSimpleSuggest = {
       isTabbed: false,
       controlScheme: {},
       listId: `${this._uid}-suggestions`,
-      hasSplitter: false
+      hasSplitter: false,
+      requestCounter: 0
     };
   },
   computed: {
@@ -530,22 +530,12 @@ var VueSimpleSuggest = {
     },
     async research() {
       try {
-        if (this.canSend) {
-          this.canSend = false;
-          // @TODO: fix when promises will be cancelable (never :D)
-          let textBeforeRequest = this.text;
-          let newList = await this.getSuggestions(this.text);
-
-          if (textBeforeRequest === this.text) {
-            this.$set(this, 'suggestions', newList);
-          }
-        }
+        this.requestCounter++;
+        this.$set(this, 'suggestions', (await this.getSuggestions(this.text, this.requestCounter)));
       } catch (e) {
         this.clearSuggestions();
         throw e;
       } finally {
-        this.canSend = true;
-
         if (this.suggestions.length === 0 && this.miscSlotsAreEmpty()) {
           this.hideList();
         } else if (this.isInFocus) {
@@ -555,7 +545,7 @@ var VueSimpleSuggest = {
         return this.suggestions;
       }
     },
-    async getSuggestions(value) {
+    async getSuggestions(value, requestCounter) {
       value = value || '';
 
       if (value.length < this.minLength) {
@@ -574,6 +564,12 @@ var VueSimpleSuggest = {
       try {
         if (this.listIsRequest) {
           result = (await this.list(value)) || [];
+          if (this.requestCounter !== requestCounter) {
+            // A result of some kind is returned in the finally() clause.
+            // If we're cancelling, just return the current suggestion list
+            result = this.suggestions;
+            throw new Error("Async search error");
+          }
         } else {
           result = this.list;
         }
